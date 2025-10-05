@@ -9,7 +9,7 @@ Path Z set at a constnat to test correct coordinate alignment
 ![alt text](img/img2.png)
 ![alt text](img/img3.png)
 
-No restriction on axis
+No restriction on axis (random path for test)
 ![alt text](img/img4.png)
 ![alt text](img/img5.png)
 ![alt text](img/img6.png)
