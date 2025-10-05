@@ -50,12 +50,18 @@ class Map {
 
         std::vector<std::vector<int>> heightmap;
 
-        // std::vector<Eigen::Vector3d>> path;
+        std::vector<Eigen::Vector3d> path;
 
     public:
         Map();
         Map(Eigen::Vector3d b, std::vector<Threat> t, Eigen::Vector3d sP, std::vector<Eigen::Vector3d> g);
         Map(Eigen::Vector3d b, Eigen::Vector3d sP, std::vector<Eigen::Vector3d> g, int numberOfThreats);
+
+        void setPath(std::vector<Eigen::Vector3d> p);
+
+        std::vector<Eigen::Vector3d> pathGenerator(int numOfNodes, char setAxis);
+        void printPath();
+
 
         void readMap(const std::string& filePath, int mapWidth, int mapHeight);
         void saveToFile(const std::string& filePath) const;

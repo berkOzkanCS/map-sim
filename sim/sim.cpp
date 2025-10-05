@@ -40,7 +40,9 @@ Map::Map(Eigen::Vector3d b,
       threats(std::move(t)),
       startPos(sP),       
       goals(std::move(g))
-{}
+{
+    bounds.z() = 255;
+}
 
 Map::Map(Eigen::Vector3d b,
          Eigen::Vector3d sP,
@@ -50,6 +52,7 @@ Map::Map(Eigen::Vector3d b,
       startPos(sP),      
       goals(std::move(g))
 {
+    bounds.z() = 255;
     std::random_device rd;
     std::mt19937 rng(rd());
 
@@ -80,6 +83,42 @@ Map::Map(Eigen::Vector3d b,
     }
 }
 
+void Map::setPath(std::vector<Eigen::Vector3d> p) {
+    path = p;
+}
+
+std::vector<Eigen::Vector3d> Map::pathGenerator(int numOfNodes, char setAxis) {
+    static std::mt19937 rng(std::random_device{}());
+    std::uniform_int_distribution<int> locX(10, bounds.x());
+    std::uniform_int_distribution<int> locY(10, bounds.y());
+    std::uniform_int_distribution<int> locZ(10, bounds.z());
+
+    const int setAxisValue = 365;
+    path.clear();
+    for (size_t i = 0; i < numOfNodes; i++) {
+        int x = locX(rng);
+        int y = locY(rng);
+        int z = locZ(rng);
+        if (setAxis == 'x' || setAxis == 'X') {
+            x = setAxisValue;
+        } else if (setAxis == 'y' || setAxis == 'Y') {
+            y = setAxisValue;
+        } else if (setAxis == 'z' || setAxis == 'Z') {
+            z = setAxisValue;
+        }
+        
+        path.push_back(Eigen::Vector3d(x,y,z));
+    }
+    return path;
+}
+
+void Map::printPath() {
+    std::cout << "Path:\t";
+    for (size_t i = 0; i < path.size(); i++) {
+        std::cout << "(" << path[i].x() << ", " << path[i].y() << ", " << path[i].z() << ") ";
+    }
+    std::cout << "\n";
+}
 
 void Map::readMap(const std::string& filePath, int mapWidth, int mapHeight) {
     std::ifstream file(filePath, std::ios::binary);
@@ -87,35 +126,42 @@ void Map::readMap(const std::string& filePath, int mapWidth, int mapHeight) {
         throw std::runtime_error("Failed to open heightmap file: " + filePath);
     }
 
-    std::vector<unsigned char> buffer(mapWidth * mapHeight, 0); 
-    file.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
+    std::vector<uint16_t> buffer(mapWidth * mapHeight, 0);
+    file.read(reinterpret_cast<char*>(buffer.data()), buffer.size() * sizeof(uint16_t));
+
+
+    if (!file) {
+        throw std::runtime_error("Failed to read full heightmap data from: " + filePath);
+    }
 
     heightmap.assign(mapHeight, std::vector<int>(mapWidth, 0));
     for (int y = 0; y < mapHeight; ++y) {
         for (int x = 0; x < mapWidth; ++x) {
             int idx = y * mapWidth + x;
-            if (idx < buffer.size()) {
-                heightmap[y][x] = buffer[idx];
-            } else {
-                heightmap[y][x] = 0;
-            }
+            heightmap[y][x] = static_cast<int>(buffer[idx]);
+            // std::cout << "height[" << y << "][" << x << "]: " << heightmap[y][x] << std::endl;
         }
     }
 
-    // bounds = Eigen::Vector3d(mapWidth, mapHeight, 255);
+    int val = heightmap[10][20]; // y=10, x=20
+    std::cout << val << std::endl;
 
     for (auto& threat : threats) {
         Eigen::Vector3d c = threat.getCenter();
         int xi = static_cast<int>(c.x());
         int yi = static_cast<int>(c.y());
-        // std::cout << "hm[xy]: " << heightmap[yi][xi] << "cz " << c.z() << "\n";
+
         if (xi >= 0 && xi < mapWidth && yi >= 0 && yi < mapHeight) {
+            // std::cout << "height[" << yi << "][" << xi << "]: " << heightmap[yi][xi] << " + " << c.z() << " + " << threat.getH()/2 << "\n";
             c.z() = heightmap[yi][xi] + c.z() + threat.getH()/2;
         } else {
             c.z() = 0;
+            // std::cout << "height[" << yi << "][" << xi << "]: " << heightmap[yi][xi] << " + " << c.z() << " + " << "\n";
         }
-        std::cout << "xi: " << xi << " yi: " << yi << " hm[xy]: " << heightmap[yi][xi] << " cz-h/2 " << c.z() - threat.getH()/2 << "\n";
-        // std::cout << "Resulting H: " << c.z() << "\n";
+
+        // std::cout << "xi: " << xi << " yi: " << yi 
+        //           << " hm[xy]: " << heightmap[yi][xi] 
+        //           << " cz-h/2 " << c.z() - threat.getH()/2 << "\n";
 
         threat.setCenter(c);
     }
@@ -137,9 +183,9 @@ void Map::saveToFile(const std::string& filePath) const {
         out << g.x() << " " << g.y() << " " << g.z() << "\n";
 
     // Write heightmap size
-    // int rows = heightmap.size();
-    // int cols = (rows > 0) ? heightmap[0].size() : 0;
-    // out << rows << " " << cols << "\n";
+    int rows = heightmap.size();
+    int cols = (rows > 0) ? heightmap[0].size() : 0;
+    out << rows << " " << cols << "\n";
 
     // Write heightmap
     // for (const auto& row : heightmap) {
@@ -153,5 +199,9 @@ void Map::saveToFile(const std::string& filePath) const {
         Eigen::Vector3d c = t.getCenter();
         out << c.x() << " " << c.y() << " " << c.z() << " "
             << t.getR() << " " << t.getH() << "\n";
+    }
+
+    for (const auto& p : path) {
+        out << p.x() << " " << p.y() << " " << p.z() << "\n";
     }
 }
