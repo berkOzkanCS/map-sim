@@ -11,6 +11,8 @@
 #include <iomanip>
 #include <iostream>
 
+const int MAP_Z = 255;
+
 class GeneratorStrategy {
     public:
         virtual void collisionCheck(Eigen::Vector3d v) = 0;
@@ -65,6 +67,8 @@ class Map {
 
         void readMap(const std::string& filePath, int mapWidth, int mapHeight);
         void saveToFile(const std::string& filePath) const;
+
+        void pathfind();
 };
 
 #endif

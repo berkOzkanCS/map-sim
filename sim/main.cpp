@@ -1,14 +1,46 @@
 #include "sim.hpp"
 #include <iostream>
+#include <fstream>
+#include <iostream>
+#include <arpa/inet.h>
+#include <sstream>
+#include <string>
 
-int main() {
 
-    Map world(Eigen::Vector3d(505, 505, 500), Eigen::Vector3d(10, 10, 10), {Eigen::Vector3d(480, 480, 480)}, 15);
 
-    world.readMap("heightmap.bin", 505, 505);
+/**
+ * usage: ./out "filepath.png" #obstacles" 
+ */
+int main(int argc, char **argv) {
+    if (argc < 2) {
+        std::cerr << "Usage: program <map_png> #obstacles\n";
+        return 1;
+    }
+    std::string map_file_path = argv[1];
+    std::ifstream map_file(map_file_path);
+    if (!map_file) {
+        std::cerr << "Failed to open " << map_file_path << "\n";
+        return 1;
+    }
 
-    world.pathGenerator(15, ' ');
+    unsigned int width, height;
 
+    map_file.seekg(16);
+    map_file.read((char *)&width, 4);
+    map_file.read((char *)&height, 4);
+
+    const int MAP_WIDTH = ntohl(width);
+    const int MAP_HEIGHT = ntohl(height);
+
+    int obstaclesCnt = static_cast<int>(*argv[2]);
+    Eigen::Vector3d start(10,10,10), goal(MAP_WIDTH,MAP_HEIGHT,MAP_Z);
+    
+    // automatically generates threats
+    Map world(Eigen::Vector3d(MAP_WIDTH, MAP_HEIGHT, MAP_Z), start, {goal}, obstaclesCnt);
+    world.readMap("heightmap.bin", MAP_WIDTH, MAP_HEIGHT);
+    // run algorithm using threats, start, goal, terrain
+    world.pathfind();
+    // world.pathGenerator(15, ' ');
     // world.printPath();
 
     world.saveToFile("map_data.txt");

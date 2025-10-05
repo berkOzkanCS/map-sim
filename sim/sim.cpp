@@ -1,6 +1,5 @@
 #include "sim.hpp"
 
-
 void CylinderStrategy::collisionCheck(Eigen::Vector3d v) {
 
 }
@@ -11,7 +10,6 @@ void DomeStrategy::collisionCheck(Eigen::Vector3d v) {
 
 Threat::Threat(Eigen::Vector3d c, int r, int h, std::unique_ptr<GeneratorStrategy> initStrategy)
     : center(c), R(r), H(h), strategy(std::move(initStrategy)) {}
-
 
 void Threat::setStrategy(std::unique_ptr<GeneratorStrategy> newStrategy) {
     strategy = std::move(newStrategy);
@@ -52,7 +50,7 @@ Map::Map(Eigen::Vector3d b,
       startPos(sP),      
       goals(std::move(g))
 {
-    bounds.z() = 255;
+    bounds.z() = MAP_Z;
     std::random_device rd;
     std::mt19937 rng(rd());
 
@@ -143,9 +141,6 @@ void Map::readMap(const std::string& filePath, int mapWidth, int mapHeight) {
         }
     }
 
-    int val = heightmap[10][20]; // y=10, x=20
-    std::cout << val << std::endl;
-
     for (auto& threat : threats) {
         Eigen::Vector3d c = threat.getCenter();
         int xi = static_cast<int>(c.x());
@@ -205,3 +200,4 @@ void Map::saveToFile(const std::string& filePath) const {
         out << p.x() << " " << p.y() << " " << p.z() << "\n";
     }
 }
+
